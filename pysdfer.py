@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from cmath import sqrt
 from math import ceil
 from multiprocessing.dummy import Array
 from pathlib import Path
@@ -16,7 +17,8 @@ import io
 import re
 from statistics import mode
 from multiprocessing import Pool
-import pickle
+import numpy as np
+from functools import reduce
 
 
 print('yo!')
@@ -40,11 +42,11 @@ def make_path(path_in: Path, path_out: Path, inklayers: bool):
             # (as though a dir path were passed in)
             path_out = path_in / 'sdf_out'
     # If the input is a file, and the output is a directory or doesn't exist
-    if path_in.is_file() and path_out.suffix == '':
+    if path_in.is_file() and path_out.suffix != '.png':
         print("inklayers is ", inklayers)
         # If we want to process this as an inkscape doc, seperating layers...
-        if inklayers:
-            # ... we want to make an output folder, into which the layers can go
+        if inklayers :
+             # ... we want to make an output folder, into which the layers can go
             tmppath = path_out / (path_in.stem+"/")
             if tmppath.stem != path_in.stem:
                 path_out = path_out / (path_in.stem+"/")
@@ -52,7 +54,7 @@ def make_path(path_in: Path, path_out: Path, inklayers: bool):
                 os.makedirs(path_out, exist_ok=True)
         # Otherwise if the path doesn't have a suffix (a poor way to detect
         # a file path that doesn't exist, but it's what we've got)...
-        elif path_out.suffix == '':
+        elif path_out.suffix != '.png':
             # We want to take a dir path and make it into a file path
             path_out = path_out / (path_in.stem+".csdf.png")
         print(path_out)
@@ -67,6 +69,8 @@ def make_path(path_in: Path, path_out: Path, inklayers: bool):
     return path_out
 
 def do_image(image: Image, main_color: Color, under_color: Color = None, out_height: int = 128, keep_aspect: bool = False, padding=50):
+
+    image_ar = image.width/image.height
 
     under_color = Color(str(under_color))
 
@@ -83,6 +87,10 @@ def do_image(image: Image, main_color: Color, under_color: Color = None, out_hei
     
     inset_height = max(image.width, image.height)+padding
     inset_width = inset_height
+    if keep_aspect:
+        inset_height = image.height + padding
+        inset_width = int(inset_height * image_ar)
+        pass
     inset = Image(height=inset_height, width=inset_width, background=under_color)
     inset.gravity = 'center'
     inset.composite(image)
@@ -118,9 +126,54 @@ def do_image(image: Image, main_color: Color, under_color: Color = None, out_hei
 
 
     the_black.composite(outer, operator='copy_opacity')
-    the_black.resize(out_height, out_height)
+    out_width = out_height
+    if keep_aspect:
+        out_width = int(out_height / image_ar)
+        pass
+    the_black.resize(out_height, out_width)
     #the_black.resize(128, 128)
     return the_black
+
+def pad_list_with(l: list, amt: int, genfiller):
+    l = l.copy()
+    c = len(l)
+    num_to_fill = amt - c
+    for i in range(num_to_fill):
+        l.append(genfiller())
+    return l
+
+def split_list(l: list, sublist_len: int):
+    return [l[i:i+sublist_len] for i in range(0, len(l), sublist_len)]
+
+def img_row_reduce(a: Image, b: Image):
+    a.sequence.append(b)
+    a.concat()
+    return a
+    pass
+
+def img_stack_reduce(a: Image, b: Image):
+    a.sequence.append(b)
+    a.concat(True)
+    return a
+
+def make_image_row(ilist: list):
+    col = reduce(img_row_reduce, ilist)
+    print(ilist)
+    return 1
+    pass
+
+
+def make_atlas(sdf_images: list, is_in_process: bool = True, pool_count=10):
+    print('sdf images are: ', sdf_images)
+    imcount = len(sdf_images)
+    next_up_sqrt = ceil(sqrt(imcount).real)
+    new_img_1 = Image(height=sdf_images[0].height, width=sdf_images[0].width, background=Color('transparent'))
+    genfiller = lambda: new_img_1.clone()
+    padded_list = pad_list_with(sdf_images, next_up_sqrt*next_up_sqrt, genfiller)
+    s_list = split_list(padded_list, next_up_sqrt)
+    atlas = reduce(img_stack_reduce, [reduce(img_row_reduce, x) for x in s_list])
+    return atlas
+    pass
 
 def remove_newlines(s: str):
     return ' '.join([x.strip() for x in s.splitlines()])
@@ -217,14 +270,23 @@ def handle_inklayers(filepath: Path, args, blob_at_end, is_in_process):
             #img = Image(blob=bytes(layer.toxml(), 'utf-8'))
             #print(img)
     # print(layers_xml)
+    images_out = []
     if is_in_process:
-        return [(Image(blob=x), y) for [x,y] in [xmlstr_to_sdf(x) for x in layers_xml]]
+        images_out = [(Image(blob=x), y) for [x,y] in [xmlstr_to_sdf(x) for x in layers_xml]]
     else:
         with Pool(args.processes) as p:
-            out = p.map(xmlstr_to_sdf, layers_xml)
+            images_out = p.map(xmlstr_to_sdf, layers_xml)
             if not blob_at_end:
-                out = [(Image(blob=x), y) for [x,y] in out]
-            return out
+                images_out = [(Image(blob=x), y) for [x,y] in images_out]
+
+    if args.atlas:
+        master_path = save_root / (filepath.stem + '.atlas.csdf.png')
+        images = [x for [x,y] in images_out]
+        images_out = [[make_atlas(images, is_in_process), master_path]]
+
+        pass
+
+    return images_out
 
 def handle_file(filepath: Path, args, blob_at_end = False, is_in_process = False):
     # If we want to handle this file as an inkscape doc, saving each layer,
@@ -253,11 +315,25 @@ def handle_file(filepath: Path, args, blob_at_end = False, is_in_process = False
     return out
     pass
 
+format_suffixes = ['.svg', '.png', '.jpg', '.jpeg', '.gif', '.bmp']
+
+def is_path_supported_image(path: Path, args):
+    if args.inklayers:
+        format_suffixes = ['.svg']
+    elif args.no_svg:
+        format_suffixes = [x for x in format_suffixes if x != '.svg']
+    return path.is_file and path.suffix in format_suffixes
+    pass
+
 def handle_dir(args):
     path_in = args.path_in
     print(args.path_out)
     output = []
-    id = [[x, args, True, True] for x in path_in.iterdir() if x.is_file()]
+    id = [[x, args, True, True] for x in path_in.iterdir() if is_path_supported_image(x, args)]
+    # if args.inklayers:
+    #     id = [x for x in id if x[1].suffix == '.svg']
+    # elif args.no_svg:
+    #     id = [x for x in id if x[1].suffix != '.svg']
     with Pool(args.processes) as p:
         sm = p.starmap(handle_file, id)
         # [print('x, y', x, y) for [x, y] in sum(sm, [])]
@@ -290,12 +366,18 @@ If the conversion results in weirdness, try setting this to the opposite of the 
         '--inklayers', action="store_true", help=
 """If the image is an inkscape svg (or there are svgs in the folder), it will convert each layer
 as its own seperate sdf image. It will then use the color of (the most) shapes in the layer
-as that layer's main color unless another main color is explicitely provided""")
+as that layer's main color unless another main color is explicitely provided. Use of this command
+means that non-svg files will not be processed if a directory path is given. Has no effect if
+the path is to a png file. Cannot be used with --no-svg""")
+    parser.add_argument('--no-svg', action="store_true", help=
+"""Skips over any svg images in the folder. Has no effect if the path is to an svg
+file. Cannot be used with --inklayers""")
     parser.add_argument(
         '--atlas', action="store_true", help=
 """Takes a collection of images, and puts them into an atlas. The images themselves should all be
 the same w:h ratio, and the atlas will be the same number of images wide as it is tall 
-(filling the empty space with transparency""")
+(filling the empty space with transparency). If --inklayers is enabled, then one atlas will be made for each
+inkscape document, rather then one that includes all of the images in the folder""")
     parser.add_argument(
         '--processes', type=int, required=False, default=10, help=
 """Sets the number of processes for the command to use. Defaults to 10.""")
@@ -316,6 +398,9 @@ the same w:h ratio, and the atlas will be the same number of images wide as it i
 
     args.path_out = make_path(args.path_in, args.path_out, args.inklayers)
 
+    if args.inklayers and args.no_svg:
+        raise Exception("You cannot use both --inklayers and --no_svg")
+
     if args.path_in.is_dir() and args.path_out.is_file():
         raise Exception("If path-in is a directory, path-out must also be a directory")
 
@@ -331,4 +416,5 @@ the same w:h ratio, and the atlas will be the same number of images wide as it i
     save_images(imgs_out, args)
     pass
 
-exec()
+if __name__ == "__main__":
+    exec()
