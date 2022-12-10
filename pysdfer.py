@@ -243,6 +243,7 @@ def handle_inklayers(filepath: Path, args, blob_at_end, is_in_process):
             ch = remove_single_character_text_nodes(ch)
             # We get the main output color...
             shapecolor = args.main_color
+            print("--------- shapecolor is ", shapecolor)
             # and then get the most common fill color if none is provided.
             # Yes this means that there will be black shapes
             if not shapecolor:
@@ -255,6 +256,8 @@ def handle_inklayers(filepath: Path, args, blob_at_end, is_in_process):
                     #s['fill'] = '#000000'
                     #set_styles_on_shape(shape, s)
                 shapecolor = mode(colcol)
+            else:
+                shapecolor = str(shapecolor)
             layer_data = {
                 'layer': layer.toxml(), 
                 # 'img': Image(blob=bytes(layer.toxml(), 'utf-8')).make_blob('png'),
