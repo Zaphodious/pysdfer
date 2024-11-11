@@ -67,30 +67,13 @@ Processing a folder, letting it output to the default 'sdf_out' folder
 
 Example usage from [genexamples.sh](./genexamples.sh)
 
-`./pysdfer.py ./examples/tiger_rect.png`
+`./pysdfer.py ./examples/Goethe.jpg`
+
+(From [Wikipedia](https://en.wikipedia.org/wiki/File:GoetheVorEinemGrabmalMitWeiblicherBuesteS92.jpg))
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Tiger Original](./examples/tiger_rect.png) | ![Tiger SDF](./examples/sdf_out/tiger_rect.csdf.png) | 
-
-
-`./pysdfer.py ./examples/palm_black.png`
-
-| Original Image                               | Output                                               |
-| --------------                               | ------                                               |
-| ![Palm Tree Original](./examples/palm_black.png) | ![Palm Tree SDF](./examples/sdf_out/palm_black.csdf.png) | 
-
-`./pysdfer.py ./examples/palm_black_a.png --color-underlay white`
-
-| Original Image                               | Output                                               |
-| --------------                               | ------                                               |
-| ![Palm Tree Black Original](./examples/palm_black_a.png) | ![Palm Tree Black SDF](./examples/sdf_out/palm_black_a.csdf.png) | 
-
-`./pysdfer.py ./examples/palm_white_a.png --color-underlay black`
-
-| Original Image                               | Output                                               |
-| --------------                               | ------                                               |
-| ![Palm Tree White Original](./examples/palm_white_a.png) | ![Palm Tree White SDF](./examples/sdf_out/palm_white_a.csdf.png) | 
+| ![Goethe Original](./examples/Goethe.jpg) | ![Goethe SDF](./examples/sdf_out/Goethe.csdf.png) | 
 
 `./pysdfer.py ./examples/one_layer.ink.svg `
 
