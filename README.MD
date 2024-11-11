@@ -58,11 +58,7 @@ Example evocations from [genexamples.sh](./genexamples.sh)
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-<<<<<<< HEAD
 | ![Goethe Original](./examples/Goethe.jpg) | ![Goethe SDF](./examples/sdf_out/Goethe.csdf.png) | 
-=======
-| ![Tiger Original](./examples/Goethe) | ![Tiger SDF](./examples/sdf_out/Goethe.csdf.png) | 
->>>>>>> 6edea719684e415ddf62edadae7dc3f1d5e5054d
 
 `./pysdfer.py ./examples/one_layer.ink.svg `
 
