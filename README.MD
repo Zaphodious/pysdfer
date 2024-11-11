@@ -39,33 +39,18 @@ must be rasterized before use in rendering the resulting VRAM usage should
 be substantially less, as svgs need to be rasterized at a very high resolution
 to remain sharp.
 
+## Installation
+
+pysdfer.py stands on its own once its [requirements](#requirements) are installed, meaning that 
+copies of it can live quite happily in project directories.
+
+If using nix flakes (and Inkscape is installed), can be ran via 
+`nix run github:zaphodious/pysdfer` (and included in development flakes 
+in the usual way).
+
 ## Example usage
 
-The script pysdfer.py stands on its own once its requirements are installed.
-This means that on Windows, a .bat file pointing to the script can be created quite easily.
-
-Processing an individual image, letting it be output to the default 'sdf_out' folder
-
-```python3 -m pysdfer ./testimg/palm_black.png```
-
-Processing an individual image, outputting to a specified folder:
-
-```python3 -m pysdfer ./examples/palm_black.png --path-out ./testimg_out```
-
-Procesing an inkscape document, resulting in each layer output as its own sdf texture:
-
- ```python3 -m pysdfer --inklayers ./examples/multi_layer.ink.svg --path-out ./testimg_out```
-
-Processing a transparent image using a color-underlay:
-
-```python3 -m pysdfer ./examples/palm_black_a.png --path-out ./testimg_out --color-underlay white```
-
-Processing a folder, letting it output to the default 'sdf_out' folder
-
-```python3 -m pysdfer ./examples --```
-
-
-Example usage from [genexamples.sh](./genexamples.sh)
+Example evocations from [genexamples.sh](./genexamples.sh)
 
 `./pysdfer.py ./examples/Goethe.jpg`
 
@@ -73,7 +58,11 @@ Example usage from [genexamples.sh](./genexamples.sh)
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
+<<<<<<< HEAD
 | ![Goethe Original](./examples/Goethe.jpg) | ![Goethe SDF](./examples/sdf_out/Goethe.csdf.png) | 
+=======
+| ![Tiger Original](./examples/Goethe) | ![Tiger SDF](./examples/sdf_out/Goethe.csdf.png) | 
+>>>>>>> 6edea719684e415ddf62edadae7dc3f1d5e5054d
 
 `./pysdfer.py ./examples/one_layer.ink.svg `
 
