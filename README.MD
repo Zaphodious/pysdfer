@@ -78,52 +78,47 @@ Example usage from [genexamples.sh](./genexamples.sh)
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Palm Tree Original](./examples/palm_black.png.png) | ![Palm Tree SDF](./examples/sdf_out/palm_black.csdf.png) | 
+| ![Palm Tree Original](./examples/palm_black.png) | ![Palm Tree SDF](./examples/sdf_out/palm_black.csdf.png) | 
 
 `./pysdfer.py ./examples/palm_black_a.png --color-underlay white`
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Tiger Original](./examples/palm_black_a.png.png) | ![Tiger SDF](./examples/sdf_out/palm_black_a.csdf.png) | 
+| ![Palm Tree Black Original](./examples/palm_black_a.png) | ![Palm Tree Black SDF](./examples/sdf_out/palm_black_a.csdf.png) | 
 
 `./pysdfer.py ./examples/palm_white_a.png --color-underlay black`
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Tiger Original](./examples/palm_white_a.png) | ![Tiger SDF](./examples/sdf_out/palm_white_a.csdf.csdf.png) | 
+| ![Palm Tree White Original](./examples/palm_white_a.png) | ![Palm Tree White SDF](./examples/sdf_out/palm_white_a.csdf.csdf.png) | 
 
 `./pysdfer.py ./examples/one_layer.ink.svg `
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Tiger Original](./examples/one_layer.ink.svg) | ![Tiger SDF](./examples/sdf_out/one_layer.ink.csdf.png) | 
+| ![One Layer Inkscape Original](./examples/one_layer.ink.svg) | ![One Layer Inkscape SDF](./examples/sdf_out/one_layer.ink.csdf.png) | 
 
 `./pysdfer.py ./examples/one_layer.plain.svg --main-color green`
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Tiger Original](./examples/one_layer.plain.svg) | ![Tiger SDF](./examples/sdf_out/one_layer.plain.csdf.png) | 
+| ![One Layer Plain Original](./examples/one_layer.plain.svg) | ![One Layer Plain SDF](./examples/sdf_out/one_layer.plain.csdf.png) | 
 
 `./pysdfer.py --inklayers --atlas ./examples/multi_layer.ink.svg `
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Tiger Original](./examples/multi_layer.ink.svg) | ![Tiger SDF](./examples/sdf_out/tiger_rect.csdf.png) | 
+| ![Multi Layer Original](./examples/multi_layer.ink.svg) | ![Multi Layer SDF](./examples/sdf_out/tiger_rect.csdf.png) | 
 
 `./pysdfer.py --inklayers --atlas ./examples/shiptest.svg --height 256`
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Tiger Original](./examples/multi_layer.ink.svg) | ![Tiger SDF](./examples/sdf_out/tiger_rect.csdf.png) | 
+| ![Ship Test Original](./examples/multi_layer.ink.svg) | ![Ship Test SDF](./examples/sdf_out/tiger_rect.csdf.png) | 
 
 `./pysdfer.py ./examples --inklayers --path-out ./examples/sdf_out/bulk_inklayers`
 
 [Example Directory](./examples/) -> [Output Directory](./examples/sdf_out/bulk_inklayers/)
-
-| Original Image                               | Output                                               |
-| --------------                               | ------                                               |
-| ![Tiger Original](./examples/multi_layer.ink.svg) | ![Tiger SDF](./examples/sdf_out/tiger_rect.csdf.png) | 
-
 
 
 Output of --help
