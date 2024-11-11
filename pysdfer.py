@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from cmath import sqrt
 from math import ceil
@@ -10,6 +10,7 @@ from wand.image import Image, CHANNELS
 from wand.image import COMPOSITE_OPERATORS
 from wand.color import Color
 from wand.api import library
+from wand.exceptions import CorruptImageError, BlobError
 import os
 import argparse
 from xml.dom import minidom
@@ -17,11 +18,28 @@ import io
 import re
 from statistics import mode
 from multiprocessing import Pool
+import subprocess
 import numpy as np
+import tempfile
 from functools import reduce
+from contextlib import contextmanager
+import time
+import random
+import shutil
 
+def tmp_file_name():
+    return f"./sdftmp/{time.time()+random.random()}.png"
 
-print('yo!')
+def tmp_file(mode="wb"):
+    return open(tmp_file_name(), mode)
+
+def tmp_png(image):
+    tmpfile = tmp_file()
+    tmpfile.write(image.make_blob("png"))
+    tmpfile.flush()
+    print("pngtmp is ", tmpfile.name)
+    return tmpfile
+
 
 def __sv_img(tup: tuple):
     tup[0].save(filename=tup[1])
@@ -29,14 +47,16 @@ def __sv_img(tup: tuple):
 def save_images(images, args):
     # with Pool(args.processes) as p:
         # p.map(__sv_img, images)
-    [i.save(filename=p) for (i,p) in images]
+    for (i,p) in images:
+        shutil.move(i,p)
+    # [i.save(filename=p) for (i,p) in images]
 
-def make_path(path_in: Path, path_out: Path, inklayers: bool):
+def make_path(path_in: Path, path_out: Path, inklayers: bool, atlas: bool = False):
     # If the input param is none, we want to make one
     if path_out == None:
         # if the input is a file, we want the output to be a png file
         if path_in.is_file():
-            path_out = path_in.parent / 'sdf_out' / (path_in.stem+".csdf.png")
+            path_out = path_in.parent / 'sdf_out' / (path_in.stem+(".atlas" if atlas else "")+".csdf.png")
         else:
             # but if the input is a directory, we want the dir to be seperated
             # (as though a dir path were passed in)
@@ -57,7 +77,6 @@ def make_path(path_in: Path, path_out: Path, inklayers: bool):
         elif path_out.suffix != '.png':
             # We want to take a dir path and make it into a file path
             path_out = path_out / (path_in.stem+".csdf.png")
-        print(path_out)
     elif not path_out.exists():
         # if the path seems to be a dir path, we want to makedir slightly
         # differently
@@ -115,7 +134,7 @@ def do_image(image: Image, main_color: Color, under_color: Color = None, out_hei
 
     outer.level(.45, .55)
     outer.negate()
-    outer.alpha_channel = False
+    outer.alpha_channel = "copy"
     
     
     if not main_color:
@@ -125,7 +144,7 @@ def do_image(image: Image, main_color: Color, under_color: Color = None, out_hei
     print(the_black)
 
 
-    the_black.composite(outer, operator='copy_opacity')
+    the_black.composite(outer, operator='copy_alpha')
     out_width = out_height
     if keep_aspect:
         out_width = int(out_height / image_ar)
@@ -172,8 +191,8 @@ def make_atlas(sdf_images: list, is_in_process: bool = True, pool_count=10):
     padded_list = pad_list_with(sdf_images, next_up_sqrt*next_up_sqrt, genfiller)
     s_list = split_list(padded_list, next_up_sqrt)
     atlas = reduce(img_stack_reduce, [reduce(img_row_reduce, x) for x in s_list])
+    print("atlas is :", atlas)
     return atlas
-    pass
 
 def remove_newlines(s: str):
     return ' '.join([x.strip() for x in s.splitlines()])
@@ -217,14 +236,50 @@ def set_styles_on_shape(shapenode, styledict):
     s = ';'.join([f'{desc}:{dat}' for (desc, dat) in styledict.items()])
     shapenode.setAttribute('style', s)
 
+def convert_svg_layer_to_png(layer):
+    with tempfile.NamedTemporaryFile(suffix=".svg") as svgtmp:
+        pngtmp = tmp_file("xb")
+        svgtmp.write(bytes(layer, 'utf-8'))
+        svgtmp.flush()
+        # Imagemagick cannot correctly talk with Inkscape sometimes, so 
+        # we do this bit ourselves
+        subres = subprocess.run(
+                ['inkscape',
+                 svgtmp.name,
+                 f'--export-filename={pngtmp.name}',
+                 '--export-dpi=96',
+                 '--export-background=rgb(100%, 100%, 100%)',
+                 '--export-background-opacity=0'])
+        print(subres)
+        # To ensure that the image is read before the tmp file 
+        # goes away, we read it in and stuff it as a blob into 
+        # a new image
+        pngtmp.seek(0, os.SEEK_END)
+        #b = bytes(pngtmp.read())
+        pngsize = pngtmp.tell()
+        pngtmp.seek(0)
+        if pngsize == 0:
+            # If the file had nothing in it, it means that 
+            # Inkscape messed up. We'll have it do it until it 
+            # gets it right
+            return convert_svg_layer_to_png(layer)
+        else:
+            print("png tmp: ", pngtmp)
+            #img = Image(blob=b, format="PNG")
+            return pngtmp
+
 def xmlstr_to_sdf(a):
-    img = Image(blob=bytes(a['layer'], 'utf-8'))
+    pngtmp = convert_svg_layer_to_png(a['layer'])
+    print("returned png tmp: ", pngtmp)
+    img = Image(filename=pngtmp.name, format="png")
     sdf_img = do_image(img, a['shapecolor'], Color(str(a['color_underlay'])), a['height'], a['keep_aspect'])
     path: Path = a['save_root'] / f"{a['label'] or 'image'}.csdf.png"
     print("the save_root is ", a['save_root'])
     print('and path is ', path)
-    return (sdf_img.make_blob('png'), path)
-    sdf_img.save(filename=path)
+    sdftmp = tmp_png(sdf_img)
+    return (sdftmp.name, path)
+    #(sdf_img.make_blob(format="png"), path)
+    #sdf_img.save(filename=path)
 
 def handle_inklayers(filepath: Path, args, blob_at_end, is_in_process):
     # We want to get each inksacpe layer on its own
@@ -275,19 +330,21 @@ def handle_inklayers(filepath: Path, args, blob_at_end, is_in_process):
     # print(layers_xml)
     images_out = []
     if is_in_process:
-        images_out = [(Image(blob=x), y) for [x,y] in [xmlstr_to_sdf(x) for x in layers_xml]]
+        images_out = [(x, y) for [x,y] in [xmlstr_to_sdf(x) for x in layers_xml]]
     else:
         with Pool(args.processes) as p:
             images_out = p.map(xmlstr_to_sdf, layers_xml)
             if not blob_at_end:
-                images_out = [(Image(blob=x), y) for [x,y] in images_out]
+                images_out = [(x, y) for [x,y] in images_out]
 
     if args.atlas:
-        master_path = save_root / (filepath.stem + '.atlas.csdf.png')
-        images = [x for [x,y] in images_out]
-        images_out = [[make_atlas(images, is_in_process), master_path]]
-
-        pass
+        print("AAAAA save_root: ", save_root, " stem: ", filepath.stem, " parent: ", save_root.parent, " name: ", save_root.name )
+        master_path = save_root
+        if save_root.suffix != ".png":
+            master_path = save_root / (filepath.stem + '.atlas.csdf.png')
+        images = [Image(filename=x) for [x,y] in images_out]
+        atlas_images_out = [[make_atlas(images, is_in_process), master_path]]
+        images_out = [(tmp_png(x).name, y) for [x,y] in atlas_images_out]
 
     return images_out
 
@@ -297,9 +354,9 @@ def handle_file(filepath: Path, args, blob_at_end = False, is_in_process = False
     out = []
     if args.inklayers and filepath.suffix == '.svg':
         out = handle_inklayers(filepath, args, blob_at_end, is_in_process)
-        if blob_at_end:
-            out = [(x.make_blob('png'), y) for [x,y] in out]
-            # out = [('inklayer', y) for [x,y] in out]
+        #if blob_at_end:
+        #    out = [(x.make_blob('png'), y) for [x,y] in out]
+        #    # out = [('inklayer', y) for [x,y] in out]
         return out
     # Otherwise we simply process the image
     else:
@@ -312,7 +369,7 @@ def handle_file(filepath: Path, args, blob_at_end = False, is_in_process = False
         print('and return')
         if blob_at_end:
             img = img.make_blob('png')
-        out = [(img, path)]
+        out = [(tmp_png(img).name, path)]
         # out = [('single image', path)]
         # save(filename=args.path_out)
     return out
@@ -341,12 +398,12 @@ def handle_dir(args):
         sm = p.starmap(handle_file, id)
         # [print('x, y', x, y) for [x, y] in sum(sm, [])]
         # return []
-        return [(Image(blob=x), y) for [x, y] in sum(sm, [])]
+        return [(x, y) for [x, y] in sum(sm, [])]
     return output
 
 
 def exec():
-    print("started")
+    print("pysdfer is starting")
     parser = argparse.ArgumentParser(description='Makes SDF textures. See README.MD for usage examples.')
     parser.add_argument(
         'path_in', type=Path, help=
@@ -373,7 +430,7 @@ as that layer's main color unless another main color is explicitely provided. Us
 means that non-svg files will not be processed if a directory path is given. Has no effect if
 the path is to a png file. Cannot be used with --no-svg""")
     parser.add_argument('--no-svg', action="store_true", help=
-"""Skips over any svg images in the folder. Has no effect if the path is to an svg
+"""CURRENTLY BROKEN! Skips over any svg images in the folder. Has no effect if the path is to an svg
 file. Cannot be used with --inklayers""")
     parser.add_argument(
         '--atlas', action="store_true", help=
@@ -399,7 +456,8 @@ inkscape document, rather then one that includes all of the images in the folder
 
     imgs_out = []
 
-    args.path_out = make_path(args.path_in, args.path_out, args.inklayers)
+    args.path_out = make_path(args.path_in, args.path_out, args.inklayers, args.atlas)
+    print("patho is ", args.path_out)
 
     if args.inklayers and args.no_svg:
         raise Exception("You cannot use both --inklayers and --no_svg")
@@ -409,6 +467,11 @@ inkscape document, rather then one that includes all of the images in the folder
 
     if args.path_in.is_dir() and args.path_in.is_file():
         raise Exception("If path-in is a directory, path-out must also be a directory")
+
+    try:
+        os.mkdir("./sdftmp")
+    except FileExistsError:
+        pass
     
     if args.path_in.is_dir():
         imgs_out += handle_dir(args)
@@ -417,7 +480,9 @@ inkscape document, rather then one that includes all of the images in the folder
  
        
     save_images(imgs_out, args)
-    pass
+    
+    shutil.rmtree("./sdftmp", ignore_errors=True)
+
 
 if __name__ == "__main__":
     exec()

@@ -2,6 +2,7 @@
 testimg_out/
 */out/
 */sdf_out/
+*/sdftmp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
