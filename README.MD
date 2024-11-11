@@ -90,7 +90,7 @@ Example usage from [genexamples.sh](./genexamples.sh)
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Palm Tree White Original](./examples/palm_white_a.png) | ![Palm Tree White SDF](./examples/sdf_out/palm_white_a.csdf.csdf.png) | 
+| ![Palm Tree White Original](./examples/palm_white_a.png) | ![Palm Tree White SDF](./examples/sdf_out/palm_white_a.csdf.png) | 
 
 `./pysdfer.py ./examples/one_layer.ink.svg `
 
@@ -108,13 +108,13 @@ Example usage from [genexamples.sh](./genexamples.sh)
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Multi Layer Original](./examples/multi_layer.ink.svg) | ![Multi Layer SDF](./examples/sdf_out/tiger_rect.csdf.png) | 
+| ![Multi Layer Original](./examples/multi_layer.ink.svg) | ![Multi Layer SDF](./examples/sdf_out/multi_layer.ink.atlas.csdf.png) | 
 
 `./pysdfer.py --inklayers --atlas ./examples/shiptest.svg --height 256`
 
 | Original Image                               | Output                                               |
 | --------------                               | ------                                               |
-| ![Ship Test Original](./examples/multi_layer.ink.svg) | ![Ship Test SDF](./examples/sdf_out/tiger_rect.csdf.png) | 
+| ![Ship Test Original](./examples/shiptest.svg) | ![Ship Test SDF](./examples/sdf_out/shiptest.atlas.csdf.png) | 
 
 `./pysdfer.py ./examples --inklayers --path-out ./examples/sdf_out/bulk_inklayers`
 
