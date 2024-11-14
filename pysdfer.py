@@ -87,7 +87,9 @@ def make_path(path_in: Path, path_out: Path, inklayers: bool, atlas: bool = Fals
         # args.path_out.mkdir(parents=True, exist_ok=True)
     return path_out
 
-def do_image(image: Image, main_color: Color, under_color: Color = None, out_height: int = 128, keep_aspect: bool = False, padding=50):
+def do_image(image: Image, main_color: Color, under_color: Color = None, out_height: int = 128, keep_aspect: bool = False, kernel_size=10, kernel_scale=100):
+
+    padding = int(kernel_size*6/(kernel_scale/100))
 
     image_ar = image.width/image.height
 
@@ -120,13 +122,13 @@ def do_image(image: Image, main_color: Color, under_color: Color = None, out_hei
 
     outer = image.clone()
     #outer.resize(ceil(outer.width*4), ceil(outer.height*4))
-    outer.morphology(method="distance", kernel='euclidean', iterations=3)
+    outer.morphology(method="distance", kernel=f'euclidean:{kernel_size},{kernel_scale}', iterations=1)
     #outer.auto_level()
     #outer.level(.0, 1.5)
 
     inner = image.clone()
     inner.negate()
-    inner.morphology(method="distance", kernel='euclidean', iterations=2)
+    inner.morphology(method="distance", kernel=f'euclidean:{kernel_size},{kernel_scale}', iterations=1)
     inner.level(.50, -.50)
 
     outer.compose = 'plus'
@@ -272,7 +274,7 @@ def xmlstr_to_sdf(a):
     pngtmp = convert_svg_layer_to_png(a['layer'])
     print("returned png tmp: ", pngtmp)
     img = Image(filename=pngtmp.name, format="png")
-    sdf_img = do_image(img, a['shapecolor'], Color(str(a['color_underlay'])), a['height'], a['keep_aspect'])
+    sdf_img = do_image(img, a['shapecolor'], Color(str(a['color_underlay'])), a['height'], a['keep_aspect'], kernel_size=a['kernel_size'], kernel_scale=a['kernel_scale'])
     path: Path = a['save_root'] / f"{a['label'] or 'image'}.csdf.png"
     print("the save_root is ", a['save_root'])
     print('and path is ', path)
@@ -323,6 +325,8 @@ def handle_inklayers(filepath: Path, args, blob_at_end, is_in_process):
                 'height': args.height,
                 'keep_aspect': args.keep_aspect,
                 'save_root': save_root,
+                'kernel_size': args.kernel_size,
+                'kernel_scale': args.kernel_scale
                 }            
             layers_xml.append(layer_data)
             #img = Image(blob=bytes(layer.toxml(), 'utf-8'))
@@ -362,7 +366,7 @@ def handle_file(filepath: Path, args, blob_at_end = False, is_in_process = False
     else:
         # Process the image
         print('get the img')
-        img = do_image(Image(filename=filepath), args.main_color, args.color_underlay, args.height, args.keep_aspect)
+        img = do_image(Image(filename=filepath), args.main_color, args.color_underlay, args.height, args.keep_aspect, kernel_size=args.kernel_size, kernel_scale=args.kernel_scale)
         print('get the path')
         path = make_path(filepath, args.path_out, False)
         print('path made is ', path)
@@ -448,6 +452,14 @@ inkscape document, rather then one that includes all of the images in the folder
     parser.add_argument(
         '--keep-aspect', action="store_true", help=
 """Normally, the script coerces the output into a square. This makes the script not do that."""
+    )
+    parser.add_argument(
+        '--kernel-size', type=int, required=False, default=15, help=
+"""The size of the kernel that searches for distance from the edge."""
+    )
+    parser.add_argument(
+        '--kernel-scale', type=int, required=False, default=100, help=
+"""The amount that the image is scaled up or down while applying the kernel."""
     )
 
     args = parser.parse_args()
