@@ -7,5 +7,6 @@ rm -rf ./examples/sdf_out/
 ./pysdfer.py ./examples/one_layer.plain.svg --main-color green
 ./pysdfer.py --inklayers --atlas ./examples/multi_layer.ink.svg 
 ./pysdfer.py --inklayers --atlas ./examples/shiptest.svg --height 256
-./pysdfer.py ./examples --inklayers --path-out ./examples/sdf_out/bulk_inklayers
+./pysdfer.py ./examples --inklayers --path-out ./examples/sdf_out/bulk_inklayers --no-recursive
+./pysdfer.py ./examples/toml_demo/
 

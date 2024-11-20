@@ -1,3 +1,4 @@
 wand
 tinycss
 numpy
+alive-progress

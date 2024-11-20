@@ -32,6 +32,7 @@
             wand
             svgMagick
             pkgs.inkscape
+            alive-progress
           ];
 
           buildInputs = with pkgs; [
