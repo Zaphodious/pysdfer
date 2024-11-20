@@ -5,7 +5,7 @@ from math import ceil
 from multiprocessing.dummy import Array
 from pathlib import Path
 import re
-from typing import Collection
+from typing import Collection, Dict, Any
 from wand.image import Image, CHANNELS
 from wand.image import COMPOSITE_OPERATORS
 from wand.color import Color
@@ -311,12 +311,12 @@ def handle_inklayers(filepath: Path, args, is_in_process):
     # We want to get each inksacpe layer on its own
     layer_docs = break_up_inkscape_layers(filepath, args)
     layers_xml = []
+    save_root = args.path_out
     print("file", filepath, "is going to have each layer converted separately")
     for layer in layer_docs:
         # We just get the first g child, as there should only be one
         l_element = layer.getElementsByTagName('g')[0]
         #save_root = make_path(filepath, args.path_out, True)
-        save_root = args.path_out
         # We only want to operate on a layer that has content
         if l_element.hasChildNodes():
             # normalize removes a nice number of bs nodes
@@ -437,7 +437,7 @@ def handle_dir(args):
         sm = p.starmap(handle_file, id)
         # [print('x, y', x, y) for [x, y] in sum(sm, [])]
         # return []
-        return [(x, y) for [x, y] in sum(sm, [])]
+        return [(x, y) for (x, y) in sum(sm, [])]
     return output
 
 def get_image_process_fns(args):
@@ -447,16 +447,16 @@ def get_image_process_fns(args):
     id = [[x, args, True, True] for x in path_in.iterdir() if is_path_supported_image(x, args)]
 
 
-override_memo = {}
+override_memo: dict[Path, Dict[str, Any]] = {}
 
-def get_overrides_from_file(path_in):
+def get_overrides_from_file(path_in) -> dict[str, Any]:
     isdir = path_in.is_dir()
     respath = path_in.resolve(strict=True)
     dirpath = respath if isdir else respath.parent
 
     configpath = dirpath / "csdf.toml"
     if configpath in override_memo:
-        return override_memo.get(configpath)
+        return override_memo.get(configpath, {})
     elif configpath.exists():
         with open(configpath, 'rb') as f:
             overrides = tomllib.load(f)
@@ -573,7 +573,7 @@ inkscape document, rather then one that includes all of the images in the folder
     )
     parser.add_argument(
         '--no-recursive', action="store_true", help=
-"""Only process the files in the immediate subdirectory"""
+"""Only process the files in the immediate directory, and do not process images in subdirectories"""
     )
     return parser
 
@@ -616,7 +616,7 @@ def neo_exec():
     if rpath.is_dir():
         print("The path in is a directory, so we will scan for files...")
         every_image_path = get_every_img_path(rpath, args.no_recursive)
-        argslist = [_args for (success, _args) in [process_validate_args(overriden_args(overrides, filepath)) for (overrides, filepath) in every_image_path] if success]
+        argslist: list[argparse.Namespace] = [_args for (success, _args) in [process_validate_args(overriden_args(overrides, filepath)) for (overrides, filepath) in every_image_path] if success]
         if len(argslist) == 1:
             _args = argslist[0]
             print("One file found:", _args.path_in.name) 

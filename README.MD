@@ -48,6 +48,24 @@ If using nix flakes (and Inkscape is installed), can be ran via
 `nix run github:zaphodious/pysdfer` (and included in development flakes 
 in the usual way).
 
+## csdf.toml
+
+If a file named csdf.toml is in a directory over which pysdfer is being run,
+the parameters contained therein will be set as the defaults for the program's 
+arguments. If pysdfer is being run over a directory with subdirectories, 
+each csdf.toml file will only effect processing done in its specific directory,
+and will not effect processing done in child or parent directories.
+Any parameter set in csdf.toml will be overridden if it is explicitely passed 
+in to the program. If a command-line argument has a hyphen, the key in 
+csdf.toml should be an underscore (ex: 'path_out' instead of 'path-out').
+The value of 'path_out', if present, will be parsed relative to the directory
+containing the csdf.toml file.
+
+## no_recursive
+
+By default, if pysdfer is run on a directory it will also process all images
+in subdirectories. If this is not desirable, pass in the --no_recursive flag.
+
 ## Example usage
 
 Example evocations from [genexamples.sh](./genexamples.sh)
@@ -92,8 +110,8 @@ Example evocations from [genexamples.sh](./genexamples.sh)
 Output of --help
 
 ```
-sage: pysdfer.py [-h] [--path-out PATH_OUT] [--main-color MAIN_COLOR] [--color-underlay COLOR_UNDERLAY] [--inklayers] [--atlas]
-                  [--processes PROCESSES] [--height HEIGHT] [--keep-aspect]
+usage: pysdfer.py [-h] [--path-out PATH_OUT] [--main-color MAIN_COLOR] [--color-underlay COLOR_UNDERLAY] [--inklayers] [--no-svg] [--atlas] [--processes PROCESSES] [--height HEIGHT]
+                  [--keep-aspect] [--kernel-size KERNEL_SIZE] [--kernel-scale KERNEL_SCALE] [--no-recursive]
                   path_in
 
 Makes SDF textures. See README.MD for usage examples.
@@ -103,27 +121,29 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --path-out PATH_OUT   Path for the destination file or folder. If the path-in is a folder or --inklayers is used, path-out must be
-                        a folder. Defaults to being an /sdf_out directory in the source dir
+  --path-out PATH_OUT   Path for the destination file or folder. If the path-in is a folder or --inklayers is used, path-out must be a folder. Defaults to being an /sdf_out directory in the
+                        source dir
   --main-color MAIN_COLOR
                         The color that the resultant image will be. If none is provided, will default to 'white'
   --color-underlay COLOR_UNDERLAY
-                        Color over which the source image will be placed before the sdf conversion. Defaults to 'white'. To keep
-                        transparency, use --color-underlay transparent. If the conversion results in weirdness, try setting this to
-                        the opposite of the shape's color
-  --inklayers           If the image is an inkscape svg (or there are svgs in the folder), it will convert each layer as its own
-                        seperate sdf image. It will then use the color of (the most) shapes in the layer as that layer's main color
-                        unless another main color is explicitely provided. Use of this command means that non-svg files will not be
-                        processed if a directory path is given. Has no effect if the path is to a png file. Cannot be used with
-                        --no-svg
-  --atlas               Takes a collection of images, and puts them into an atlas. The images themselves should all be the same w:h
-                        ratio, and the atlas will be the same number of images wide as it is tall (filling the empty space with
-                        transparency). If --inklayers is enabled, then one atlas will be made for each inkscape document, rather
-                        then one that includes all of the images in the folder
+                        Color over which the source image will be placed before the sdf conversion. Defaults to 'white'. To keep transparency, use --color-underlay transparent. If the
+                        conversion results in weirdness, try setting this to the opposite of the shape's color
+  --inklayers           If the image is an inkscape svg (or there are svgs in the folder), it will convert each layer as its own seperate sdf image. It will then use the color of (the most)
+                        shapes in the layer as that layer's main color unless another main color is explicitely provided. Use of this command means that non-svg files will not be processed
+                        if a directory path is given. Has no effect if the path is to a png file. Cannot be used with --no-svg
+  --no-svg              CURRENTLY BROKEN! Skips over any svg images in the folder. Has no effect if the path is to an svg file. Cannot be used with --inklayers
+  --atlas               Takes a collection of images, and puts them into an atlas. The images themselves should all be the same w:h ratio, and the atlas will be the same number of images
+                        wide as it is tall (filling the empty space with transparency). If --inklayers is enabled, then one atlas will be made for each inkscape document, rather then one
+                        that includes all of the images in the folder
   --processes PROCESSES
-                        Sets the number of processes for the command to use. Defaults to 10.
+                        Sets the number of processes for the command to use. Defaults to the number of cores in the CPU.
   --height HEIGHT       The height dimension of the individual sdf image.
   --keep-aspect         Normally, the script coerces the output into a square. This makes the script not do that.
+  --kernel-size KERNEL_SIZE
+                        The size of the kernel that searches for distance from the edge.
+  --kernel-scale KERNEL_SCALE
+                        The amount that the kernel is scaled up or down while being applied.
+  --no-recursive        Only process the files in the immediate directory
 ```
 
 ## Requirements 
