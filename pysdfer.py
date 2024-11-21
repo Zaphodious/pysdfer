@@ -67,7 +67,7 @@ def neo_make_save_root(path_in: Path, path_out: Path, inklayers: bool, atlas: bo
         save_root = path_in.parent / 'sdf_out' 
         os.makedirs(save_root, exist_ok=True)
     if inklayers and (not atlas):
-        save_root = save_root / path_in.stem
+        save_root = save_root / (prefix + path_in.stem)
         os.makedirs(save_root, exist_ok=True)
     elif save_root.suffix != '.png':
        save_root = save_root / save_filename
@@ -299,7 +299,7 @@ def xmlstr_to_sdf(a):
     # print("returned png tmp: ", pngtmp)
     img = Image(filename=pngtmp.name, format="png")
     sdf_img = do_image(img, a['shapecolor'], Color(str(a['color_underlay'])), a['height'], a['keep_aspect'], kernel_size=a['kernel_size'], kernel_scale=a['kernel_scale'])
-    path: Path = a['save_root'] / f"{a['label'] or 'image'}.csdf.png"
+    path: Path = a['save_root'] / f"{a['prefix']}{a['label'] or 'image'}.csdf.png"
     # print("the save_root is ", a['save_root'])
     # print('and path is ', path)
     sdftmp = tmp_png(sdf_img)
@@ -354,7 +354,8 @@ def handle_inklayers(filepath: Path, args, is_in_process):
                 'keep_aspect': args.keep_aspect,
                 'save_root': args.path_out,
                 'kernel_size': args.kernel_size,
-                'kernel_scale': args.kernel_scale
+                'kernel_scale': args.kernel_scale,
+                'prefix': args.out_prefix,
                 }            
             layers_xml.append(layer_data)
             #img = Image(blob=bytes(layer.toxml(), 'utf-8'))
@@ -375,7 +376,7 @@ def handle_inklayers(filepath: Path, args, is_in_process):
         print("Making atlas for", save_root.name)
         master_path = save_root
         if save_root.suffix != ".png":
-            master_path = save_root / (filepath.stem + '.atlas.csdf.png')
+            master_path = save_root / (args.out_prefix + filepath.stem + '.atlas.csdf.png')
         images = [Image(filename=x) for [x,y, _args] in images_out]
         atlas_images_out = [[make_atlas(images, is_in_process), master_path]]
         images_out = [(tmp_png(x).name, y, args) for [x,y] in atlas_images_out]
@@ -475,7 +476,7 @@ def process_validate_args(args):
 
     # print("   Doing", args)
 
-    args.path_out = neo_make_save_root(args.path_in, args.path_out, args.inklayers, args.atlas)
+    args.path_out = neo_make_save_root(args.path_in, args.path_out, args.inklayers, args.atlas, args.out_prefix)
 
     if args.inklayers and args.no_svg:
         return (False, "You cannot use both --inklayers and --no_svg")

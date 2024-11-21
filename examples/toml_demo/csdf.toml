@@ -3,4 +3,5 @@ inklayers=true
 kernel_scale=200
 path_out="../sdf_out/"
 atlas=true
+out_prefix="tomltest_"
 
