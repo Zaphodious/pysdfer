@@ -60,9 +60,9 @@ def neo_save_images(output_list):
     # print("output list:", output_list)
     [shutil.move(tmppath, topath) for (tmppath, topath, args) in output_list]
 
-def neo_make_save_root(path_in: Path, path_out: Path, inklayers: bool, atlas: bool = False):
+def neo_make_save_root(path_in: Path, path_out: Path, inklayers: bool, atlas: bool = False, prefix: str = ""):
     save_root = path_out.resolve() if path_out else None
-    save_filename = (path_in.stem + ".atlas.csdf.png") if atlas else path_in.stem+".csdf.png"
+    save_filename = prefix + ((path_in.stem + ".atlas.csdf.png") if atlas else path_in.stem+".csdf.png")
     if save_root == None:
         save_root = path_in.parent / 'sdf_out' 
         os.makedirs(save_root, exist_ok=True)
@@ -494,7 +494,7 @@ def process_validate_args(args):
 def do_sdf_routine(args):
     imgs_out = []
 
-    args.path_out = make_path(args.path_in, args.path_out, args.inklayers, args.atlas)
+    args.path_out = make_path(args.path_in, args.path_out, args.inklayers, args.atlas, args.out_prefix)
 
     # print("   Doing", args)
 
@@ -530,7 +530,10 @@ Will process each file in the directory. Must exist.""")
         '--path-out', type=Path, required=False, help=
 """Path for the destination file or folder.
 If the path-in is a folder or --inklayers is used, path-out must be a folder.
-Defaults to being an /sdf_out directory in the source dir""")
+Defaults to being an /sdf_out directory in the source dir""")    
+    parser.add_argument(
+        '--out-prefix', type=str, required=False, default='', help=
+"""Appended to the filename on output""")
     parser.add_argument(
         '--main-color', type=Color, required=False, help=
 """The color that the resultant image will be. If none is provided, will default to 'white'""")
