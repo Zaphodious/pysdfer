@@ -62,7 +62,7 @@ def neo_save_images(output_list):
 
 def neo_make_save_root(path_in: Path, path_out: Path, inklayers: bool, atlas: bool = False):
     save_root = path_out.resolve() if path_out else None
-    save_filename = (path_in.name + ".atlas.csdf.png") if atlas else path_in.stem+".csdf.png"
+    save_filename = (path_in.stem + ".atlas.csdf.png") if atlas else path_in.stem+".csdf.png"
     if save_root == None:
         save_root = path_in.parent / 'sdf_out' 
         os.makedirs(save_root, exist_ok=True)
