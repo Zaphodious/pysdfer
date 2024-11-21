@@ -29,6 +29,8 @@ import shutil
 import tomllib
 import sys
 import alive_progress
+import xxhash
+import json
 
 def tmp_file_name():
     return f"./sdftmp/{time.time()+random.random()}.png"
@@ -517,6 +519,7 @@ def do_sdf_routine(args):
        
     save_images(imgs_out, args)
 
+
 def make_arg_parser():
     parser = argparse.ArgumentParser(description='Makes SDF textures. See README.MD for usage examples.')
     parser.add_argument(
@@ -575,13 +578,57 @@ inkscape document, rather then one that includes all of the images in the folder
         '--no-recursive', action="store_true", help=
 """Only process the files in the immediate directory, and do not process images in subdirectories"""
     )
+    parser.add_argument(
+        '--idempotent', action="store_true", help=
+"""Records the hashes of source image files ('.csdf_idempotent_stash.json' in path-out), and when running again only converts files that have changed. Only has an effect when called on a directory."""
+    )
     return parser
+
+def make_relative_path_key(rootpath: Path, keypath: Path) -> str:
+    relpath = keypath.resolve().relative_to(rootpath.resolve())
+    return relpath.__str__()
+
+def hashit(rootpath: Path, hashcollector: dict[str, dict[str, Any]], path: Path):
+    rpath = make_relative_path_key(rootpath, path)
+    if rpath in hashcollector.keys():
+        return hashcollector[rpath]
+    entire_file = path.read_bytes()
+    hash64 = xxhash.xxh64(entire_file).hexdigest()
+    hashcollector[rpath] = {'hash': hash64} # mutates, non-returned
+    return hash64
+
+def get_idempotent_stash(args):
+    current_dir = args.path_in
+    if current_dir.is_file():
+        current_dir = current_dir.parent()
+    idempotent_stash_path = current_dir / ".csdf_idempotent_stash.json"
+    if idempotent_stash_path.exists():
+        return json.loads(idempotent_stash_path.read_text())
+    else:
+        return {}
+
+def stow_idempotent_stash(args, stash):
+    current_dir = args.path_in
+    if current_dir.is_file():
+        current_dir = current_dir.parent() 
+    idempotent_stash_path = current_dir / ".csdf_idempotent_stash.json"
+    idempotent_stash_path.write_text(json.dumps(stash))
+
+def has_hash_changed(rootpath: Path, path: Path, hashcollector: dict[str, dict[str, Any]], old_stash: dict[str, dict[str, Any]]) -> bool:
+    rpath = make_relative_path_key(rootpath, path)
+    if rpath in old_stash.keys():
+        oldhash = old_stash[rpath]['hash']
+        newhash = hashcollector[rpath]['hash']
+        return oldhash != newhash
+    else:
+        return True
 
 def get_every_img_path(dirpath, no_recursive=False):
     dirwalk = [x for x in os.walk(dirpath.resolve(True))]
     if no_recursive:
         dirwalk = [dirwalk[0]]
-    return [z for z in [[(get_overrides_from_file(Path(x[0])), Path(x[0])/f) for f in x[2] if Path(f).suffix in format_suffixes] for x in dirwalk if not ('sdf_out' in [y.name for y in Path(x[0]).parents])] for z in z]
+    initialvec = [z for z in [[(get_overrides_from_file(Path(x[0])), Path(x[0])/f) for f in x[2] if Path(f).suffix in format_suffixes] for x in dirwalk] for z in z]
+    return [x for x in initialvec if not 'sdf_out' in [y.name for y in x[1].parents]]
 
 def overriden_args(overrides, filepath):
     parser = make_arg_parser()
@@ -603,6 +650,7 @@ def neo_exec():
     parser.set_defaults(**overrides)
     args = parser.parse_args()
     validsuccess = process_validate_args(args)
+    hash_collector: dict[str, dict[str, Any]] = {}
     if not validsuccess[0]:
         raise Exception(validsuccess[1])
     print("Program running with the following initial flags:", args)
@@ -617,6 +665,16 @@ def neo_exec():
         print("The path in is a directory, so we will scan for files...")
         every_image_path = get_every_img_path(rpath, args.no_recursive)
         argslist: list[argparse.Namespace] = [_args for (success, _args) in [process_validate_args(overriden_args(overrides, filepath)) for (overrides, filepath) in every_image_path] if success]
+        if args.idempotent:
+            print("Idempotent mode engaged. Gathering file hashes.")
+            old_idempotent_stash = get_idempotent_stash(args) # linter gives me grief if it's not here
+            [hashit(args.path_in, hash_collector, _args.path_in) for _args in argslist]
+            print("File hashes gathered. Comparing old file hashes.")
+            argslist = [_args for _args in argslist if has_hash_changed(args.path_in, _args.path_in, hash_collector, old_idempotent_stash)]
+            print("File hashes compared.")
+            if len(argslist) == 0:
+                print("There are no changed files. Exiting program. Goodbye.")
+                # We don't need to save another stash if there are no changed files.
         if len(argslist) == 1:
             _args = argslist[0]
             print("One file found:", _args.path_in.name) 
@@ -643,6 +701,9 @@ def neo_exec():
     # print("deleting the tmp dir")
     print("Images saved.")
     shutil.rmtree("./sdftmp", ignore_errors=True)
+    if args.idempotent:
+        print("Saving updated file hashes")
+        stow_idempotent_stash(args, hash_collector)
     print("Program completed successfully. Goodbye.")
 
 

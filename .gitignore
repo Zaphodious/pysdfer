@@ -1,8 +1,9 @@
-# pysdfer spcific folders
+# pysdfer spcific things
 testimg_out/
 */out/
 */sdftmp/
 sandbox/
+.csdf_idempotent_stash.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

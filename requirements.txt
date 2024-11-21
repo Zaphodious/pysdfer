@@ -2,3 +2,4 @@ wand
 tinycss
 numpy
 alive-progress
+xxhash

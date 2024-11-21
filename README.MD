@@ -110,8 +110,9 @@ Example evocations from [genexamples.sh](./genexamples.sh)
 Output of --help
 
 ```
+Pysdfer is starting
 usage: pysdfer.py [-h] [--path-out PATH_OUT] [--main-color MAIN_COLOR] [--color-underlay COLOR_UNDERLAY] [--inklayers] [--no-svg] [--atlas] [--processes PROCESSES] [--height HEIGHT]
-                  [--keep-aspect] [--kernel-size KERNEL_SIZE] [--kernel-scale KERNEL_SCALE] [--no-recursive]
+                  [--keep-aspect] [--kernel-size KERNEL_SIZE] [--kernel-scale KERNEL_SCALE] [--no-recursive] [--idempotent]
                   path_in
 
 Makes SDF textures. See README.MD for usage examples.
@@ -143,7 +144,9 @@ options:
                         The size of the kernel that searches for distance from the edge.
   --kernel-scale KERNEL_SCALE
                         The amount that the kernel is scaled up or down while being applied.
-  --no-recursive        Only process the files in the immediate directory
+  --no-recursive        Only process the files in the immediate directory, and do not process images in subdirectories
+  --idempotent          Records the hashes of source image files ('.csdf_idempotent_stash.json' in path-in), and when running again only converts files that have changed. Only has an
+                        effect when called on a directory.
 ```
 
 ## Requirements 

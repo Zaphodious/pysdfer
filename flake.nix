@@ -33,6 +33,7 @@
             svgMagick
             pkgs.inkscape
             alive-progress
+            xxhash
           ];
 
           buildInputs = with pkgs; [
