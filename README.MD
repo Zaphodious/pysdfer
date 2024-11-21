@@ -145,7 +145,8 @@ options:
   --kernel-scale KERNEL_SCALE
                         The amount that the kernel is scaled up or down while being applied.
   --no-recursive        Only process the files in the immediate directory, and do not process images in subdirectories
-  --idempotent          Records the hashes of source image files ('.csdf_idempotent_stash.json' in path-in), and when running again only converts files that have changed. Only has an
+  --idempotent          Records the hashes of source image files ('.csdf_idempotent_stash.json' in path-in), and when
+                        running again only converts files that have changed. Only has an
                         effect when called on a directory.
 ```
 

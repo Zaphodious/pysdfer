@@ -475,6 +475,7 @@ def process_validate_args(args):
 
     # print("   Doing", args)
 
+    args.path_out = neo_make_save_root(args.path_in, args.path_out, args.inklayers, args.atlas)
 
     if args.inklayers and args.no_svg:
         return (False, "You cannot use both --inklayers and --no_svg")
@@ -485,7 +486,6 @@ def process_validate_args(args):
     if args.path_in.is_dir() and args.path_in.is_file():
         return (False, "If path-in is a directory, path-out must also be a directory")
 
-    args.path_out = neo_make_save_root(args.path_in, args.path_out, args.inklayers, args.atlas)
 
     return (True, args)
 
